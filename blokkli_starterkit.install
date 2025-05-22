@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Blokkli Starterkit.
+ */
+
+
+/**
+ * Update hook to delete all `search_api.index.*` config entities.
+ * 
+ * Necessary for the Drupal 11 update.
+ */
+function blokkli_starterkit_update_8001() {
+  $config_factory = \Drupal::configFactory();
+  foreach ($config_factory->listAll('search_api.index.') as $index_id) {
+    $config_factory->getEditable($index_id)->delete();
+  }
+}

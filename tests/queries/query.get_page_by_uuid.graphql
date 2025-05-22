@@ -1,0 +1,14 @@
+query nodeByUuid($uuid: String!) {
+  entityByUuid(entityType:NODE, uuid: $uuid) {
+    ... on NodeIcmsPage {
+      uuid,
+      changed
+      created
+      langcode
+      nid
+      status
+      title
+      vid
+    }
+  }
+}

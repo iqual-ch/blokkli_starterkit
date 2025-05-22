@@ -1,0 +1,5 @@
+tweaks:
+  version: VERSION
+  css:
+    theme:
+      /libraries/icms-blokkli-customization/css/backend.css: { }
