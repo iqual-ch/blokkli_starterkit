@@ -17,6 +17,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\field_group\FormatterHelper;
 use Drupal\paragraphs_blokkli\Form\ParagraphsBlokkliFormBase;
 use Drupal\user\UserInterface;
+use Drupal\views\Entity\View;
 use Drupal\webform\Entity\Webform;
 
 /**
@@ -178,5 +179,25 @@ function blokkli_starterkit_paragraphs_type_access(EntityInterface $entity, $ope
   if ($operation === 'view') {
     return AccessResult::allowedIf($account->isAuthenticated());
   }
+  return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access() for view.
+ */
+function blokkli_starterkit_view_access(View $view, $operation, $account) {
+  // Allow access to the view if the user has permission to access the view.
+  // This is a workaround for the graphql_core_schema module, which does not
+  // check permissions for views.
+  // Whitelists every views with display "graphql".
+  // @see https://www.drupal.org/project/graphql_core_schema/issues/3351950
+  $route_name = \Drupal::routeMatch()->getRouteName();
+
+  if ($operation === 'view') {
+    if ($route_name === 'graphql.query.core_schema' || $route_name === 'graphql.query.graphql') {
+      return AccessResult::allowedIf($view->getExecutable()->access('graphql', $account));
+    }
+  }
+
   return AccessResult::neutral();
 }
