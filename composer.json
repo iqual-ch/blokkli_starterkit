@@ -2,7 +2,9 @@
     "name": "iqual/blokkli_starterkit",
     "description": "Blökkli Starterkit.",
     "type": "drupal-module",
-    "license": ["GPL-2.0-or-later"],
+    "license": [
+        "GPL-2.0-or-later"
+    ],
     "require": {
         "drupal/core": "^10 || ^11"
     },
