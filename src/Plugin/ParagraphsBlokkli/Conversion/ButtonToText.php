@@ -27,7 +27,7 @@ class ButtonToText extends ParagraphConversionPluginBase {
    */
   public function convert(ParagraphInterface $paragraph, ParagraphMutationContextInterface $context): ?array {
     $link = $paragraph->get('field_link')->first();
-    $title = $paragraph->get('field_title')->first()?->value;
+    $title = $paragraph->get('field_label')->first()?->value;
     $text = '';
 
     if ($link instanceof LinkItemInterface) {
@@ -36,7 +36,7 @@ class ButtonToText extends ParagraphConversionPluginBase {
     }
 
     return [
-      'paragraphs_text' => [
+      'field_text' => [
         'value' => $text,
         'format' => 'basic_html',
       ],
