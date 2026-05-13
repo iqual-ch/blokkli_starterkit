@@ -8,5 +8,5 @@
     "require": {
         "drupal/core": "^10 || ^11"
     },
-    "version": "1.5.17"
+    "version": "1.x-dev"
 }
