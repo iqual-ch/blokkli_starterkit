@@ -106,7 +106,7 @@ function blokkli_starterkit_entity_field_access(
   $operation,
   FieldDefinitionInterface $field_definition,
   AccountInterface $account,
-  FieldItemListInterface $items = NULL,
+  ?FieldItemListInterface $items = NULL,
 ) {
   $field_name = $field_definition->getName();
   $entity = $items?->getEntity();
@@ -150,7 +150,7 @@ function blokkli_starterkit_menu_access(EntityInterface $entity, $operation, Acc
     'footer-meta',
   ];
   $id = $entity->id();
-  if ($operation === 'view' && in_array($id,  $menus)) {
+  if ($operation === 'view' && in_array($id, $menus)) {
     // Grant view access to the main menu to everyone.
     return AccessResult::allowed();
   }

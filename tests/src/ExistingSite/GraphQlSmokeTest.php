@@ -31,16 +31,19 @@ class GraphQlSmokeTest extends BlokkliStarterkitGraphQlExistingSiteTestBase {
    */
   public function setUp(): void {
     parent::setUp();
-    $user = $this->setUpCurrentUser();
+    $user = $this->setUpCurrentUser(permissions: ['access content']);
     assert($user instanceof User);
     $this->user = $user;
     $uuid_generator = \Drupal::service('uuid');
     $uuid = $uuid_generator->generate();
     $this->content[$uuid] = $this->createContent([
-      'type' => 'page',
+      'type' => 'icms_page',
       'uuid' => $uuid,
       'title' => $this->getRandomGenerator()->sentences(3),
       'status' => TRUE,
+      // The editorial workflow applies to pages, saving without a moderation
+      // state would leave the node in an unpublished draft state.
+      'moderation_state' => 'published',
     ]);
   }
 
@@ -54,8 +57,7 @@ class GraphQlSmokeTest extends BlokkliStarterkitGraphQlExistingSiteTestBase {
       $metadata->addCacheableDependency($this->server);
       $metadata->addCacheContexts(
         [
-          'user.node_grants:view',
-          'static:language:de',
+          'static:language:' . $content->language()->getId(),
           // Fix because of tmgmt module.
           'url.query_args:key',
         ]
