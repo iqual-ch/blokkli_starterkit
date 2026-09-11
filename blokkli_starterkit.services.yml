@@ -1,0 +1,7 @@
+services:
+  blokkli_starterkit.latest_moderation_state:
+    class: Drupal\blokkli_starterkit\LatestModerationStateLookup
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@module_handler'

@@ -24,4 +24,13 @@ function blokkli_starterkit_views_data_alter(array &$data) {
   $data['block_content']['translation_links_field'] = $translation_links_field;
   $data['media']['translation_links_field'] = $translation_links_field;
   $data['taxonomy_term_field_data']['translation_links_field'] = $translation_links_field;
+
+  $data['node_field_data']['latest_moderation_state_field'] = [
+    'title' => t('Moderation state (latest revision)'),
+    'field' => [
+      'title' => t('Moderation state (latest revision)'),
+      'help' => t('The moderation state of the latest revision, or the publication status for content that is not moderated.'),
+      'id' => 'latest_moderation_state_field',
+    ],
+  ];
 }
