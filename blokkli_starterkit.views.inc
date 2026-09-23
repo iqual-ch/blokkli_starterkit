@@ -29,7 +29,7 @@ function blokkli_starterkit_views_data_alter(array &$data) {
     'title' => t('Moderation state (latest revision)'),
     'field' => [
       'title' => t('Moderation state (latest revision)'),
-      'help' => t('The moderation state of the latest revision, or the publication status for content that is not moderated.'),
+      'help' => t('The moderation state of the latest revision, or the publication status for content that is not moderated. Live content with unpublished changes in the blökkli editor is reported as a draft.'),
       'id' => 'latest_moderation_state_field',
     ],
   ];

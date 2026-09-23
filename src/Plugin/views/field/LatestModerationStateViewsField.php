@@ -16,7 +16,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Unlike content_moderation's own "moderation_state" field, which reports the
  * state of the default (live) revision, this reports the state an editor sees
  * on the entity form. Entities whose bundle is not moderated fall back to
- * "published" or "unpublished", so the field is never empty.
+ * "published" or "unpublished", so the field is never empty. Live content
+ * with unpublished changes in the blökkli editor is reported as "draft", as
+ * those changes are pending on top of the live version like a draft revision.
  *
  * @ingroup views_field_handlers
  *
@@ -37,6 +39,13 @@ class LatestModerationStateViewsField extends FieldPluginBase {
    * @var array
    */
   protected $states = [];
+
+  /**
+   * The UUIDs of entities with pending blökkli changes, keyed by UUID.
+   *
+   * @var array
+   */
+  protected $pendingBlokkliChanges = [];
 
   /**
    * {@inheritdoc}
@@ -79,14 +88,17 @@ class LatestModerationStateViewsField extends FieldPluginBase {
    */
   public function preRender(&$values) {
     $ids = [];
+    $uuids = [];
     foreach ($values as $row) {
       $entity = $this->getEntity($row);
       if ($entity) {
         $ids[$entity->id()] = $entity->id();
+        $uuids[$entity->uuid()] = $entity->uuid();
       }
     }
 
     $this->states = $this->lookup->getStates($this->getEntityType(), $ids);
+    $this->pendingBlokkliChanges = $this->lookup->getPendingBlokkliChanges($this->getEntityType(), $uuids);
   }
 
   /**
@@ -113,6 +125,12 @@ class LatestModerationStateViewsField extends FieldPluginBase {
       }
       $published = !$entity instanceof EntityPublishedInterface || $entity->isPublished();
       $state = $published ? 'published' : 'unpublished';
+    }
+
+    // Changes in the blökkli editor are only a draft on top of a live version,
+    // like a pending revision.
+    if ($state === 'published' && isset($this->pendingBlokkliChanges[$entity->uuid()])) {
+      $state = 'draft';
     }
 
     return $this->sanitizeValue($state);

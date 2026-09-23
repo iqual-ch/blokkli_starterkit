@@ -23,6 +23,11 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
  * whose default revision is not published, because it has never been published
  * or has been taken offline, is reported as "unpublished" whatever its latest
  * revision says.
+ *
+ * Changes made in the blökkli editor are not saved as revisions until they are
+ * published from the editor, but kept in a paragraphs_blokkli_edit_state
+ * entity. They are pending changes on top of the live version just the same,
+ * so this service also reports which entities have them.
  */
 class LatestModerationStateLookup {
 
@@ -142,6 +147,45 @@ class LatestModerationStateLookup {
     }
 
     return $states;
+  }
+
+  /**
+   * Gets the entities with unpublished changes in the blökkli editor.
+   *
+   * An edit state is kept per host entity, not per translation. This follows
+   * the status indicator of the blökkli editor itself, which shows published
+   * content as having pending changes as soon as its edit state holds any
+   * mutation, so the content overview and the editor always agree.
+   *
+   * @param string $entity_type_id
+   *   The host entity type ID, for example "node".
+   * @param array $uuids
+   *   The UUIDs of the host entities to look up.
+   *
+   * @return array
+   *   The UUIDs of the entities with pending changes, keyed by UUID.
+   */
+  public function getPendingBlokkliChanges(string $entity_type_id, array $uuids): array {
+    if (empty($uuids)) {
+      return [];
+    }
+
+    $storage = $this->entityTypeManager->getStorage('paragraphs_blokkli_edit_state');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('host_entity_type', $entity_type_id)
+      ->condition('host_entity_uuid', array_values($uuids), 'IN')
+      ->exists('mutations.plugin_id')
+      ->execute();
+
+    $pending = [];
+    /** @var \Drupal\paragraphs_blokkli\ParagraphsBlokkliEditStateInterface $state */
+    foreach ($storage->loadMultiple($ids) as $state) {
+      $uuid = $state->getHostEntityUuid();
+      $pending[$uuid] = $uuid;
+    }
+
+    return $pending;
   }
 
 }

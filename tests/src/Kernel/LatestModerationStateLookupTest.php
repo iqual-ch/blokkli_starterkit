@@ -8,6 +8,8 @@ use Drupal\blokkli_starterkit\LatestModerationStateLookup;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
+use Drupal\paragraphs_blokkli\Entity\ParagraphsBlokkliEditState;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use PHPUnit\Framework\Attributes\Group;
@@ -27,10 +29,14 @@ class LatestModerationStateLookupTest extends KernelTestBase {
   protected static $modules = [
     'content_moderation',
     'content_translation',
+    'entity_reference_revisions',
     'field',
+    'file',
     'filter',
     'language',
     'node',
+    'paragraphs',
+    'paragraphs_blokkli',
     'system',
     'text',
     'user',
@@ -55,6 +61,7 @@ class LatestModerationStateLookupTest extends KernelTestBase {
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     $this->installEntitySchema('content_moderation_state');
+    $this->installEntitySchema('paragraphs_blokkli_edit_state');
 
     ConfigurableLanguage::createFromLangcode('de')->save();
 
@@ -224,6 +231,101 @@ class LatestModerationStateLookupTest extends KernelTestBase {
    */
   public function testEmptyIdsReturnNoStates(): void {
     $this->assertSame([], $this->lookup->getStates('node', []));
+  }
+
+  /**
+   * Tests that changes in the blökkli editor are pending.
+   */
+  public function testBlokkliMutationsArePending(): void {
+    $node = $this->createPublishedNode();
+    $other = $this->createPublishedNode();
+
+    $this->assertSame([], $this->lookup->getPendingBlokkliChanges('node', [$node->uuid(), $other->uuid()]));
+
+    $this->createEditState($node, 0, [TRUE]);
+
+    $this->assertSame(
+      [$node->uuid() => $node->uuid()],
+      $this->lookup->getPendingBlokkliChanges('node', [$node->uuid(), $other->uuid()])
+    );
+  }
+
+  /**
+   * Tests that only an edit state without any mutations is not pending.
+   */
+  public function testBlokkliEditStateWithoutMutationsIsNotPending(): void {
+    // Opening the editor creates an edit state without any mutations.
+    $opened = $this->createPublishedNode();
+    $this->createEditState($opened, -1, []);
+
+    // The blökkli editor still reports undone and disabled mutations as
+    // pending changes, so the content overview does too.
+    $undone = $this->createPublishedNode();
+    $this->createEditState($undone, -1, [TRUE, TRUE]);
+    $disabled = $this->createPublishedNode();
+    $this->createEditState($disabled, 0, [FALSE]);
+
+    $this->assertSame(
+      [$undone->uuid() => $undone->uuid(), $disabled->uuid() => $disabled->uuid()],
+      $this->lookup->getPendingBlokkliChanges('node', [
+        $opened->uuid(),
+        $undone->uuid(),
+        $disabled->uuid(),
+      ])
+    );
+  }
+
+  /**
+   * Tests that edit states of other entity types are ignored.
+   */
+  public function testBlokkliEditStateOfOtherEntityTypeIsIgnored(): void {
+    $node = $this->createPublishedNode();
+    $this->createEditState($node, 0, [TRUE]);
+
+    $this->assertSame([], $this->lookup->getPendingBlokkliChanges('taxonomy_term', [$node->uuid()]));
+    $this->assertSame([], $this->lookup->getPendingBlokkliChanges('node', []));
+  }
+
+  /**
+   * Creates a published moderated node.
+   *
+   * @return \Drupal\node\NodeInterface
+   *   The node.
+   */
+  protected function createPublishedNode(): NodeInterface {
+    $node = Node::create([
+      'type' => 'moderated',
+      'title' => 'Live',
+      'moderation_state' => 'published',
+    ]);
+    $node->save();
+    return $node;
+  }
+
+  /**
+   * Creates a blökkli edit state for the given node.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   The host node.
+   * @param int $current_index
+   *   The current position in the mutation history.
+   * @param bool[] $enabled
+   *   Whether each mutation in the history is enabled.
+   */
+  protected function createEditState(NodeInterface $node, int $current_index, array $enabled): void {
+    $mutations = array_map(fn (bool $status) => [
+      'plugin_id' => 'add',
+      'timestamp' => 0,
+      'enabled' => (int) $status,
+      'configuration' => [],
+    ], $enabled);
+
+    ParagraphsBlokkliEditState::create([
+      'host_entity_type' => $node->getEntityTypeId(),
+      'host_entity_uuid' => $node->uuid(),
+      'current_index' => $current_index,
+      'mutations' => $mutations,
+    ])->save();
   }
 
 }
